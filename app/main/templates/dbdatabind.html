@@ -1,0 +1,19 @@
+<ion-view title="Demo App" id="page1">
+  <ion-content padding="true" class="has-header">
+    <div class="spacer" style="width: 300px; height: 70px;"></div>
+    <div id="demoApp-markdown1" style="text-align:center;" class="show-list-numbers-and-dots">
+      <p style="color:#000000;">Sockets Demo</p>
+    </div>
+
+    <a ng-click="changeRecord()" id="btn2" class="button button-positive  button-block">Change Count</a>
+
+
+    <form ng-submit="doLogin()">
+      <div class="list">
+          <!--<p style="color:#000000;">{{UserSettingsApplicationList().item(i).Value}}</p>-->
+          <p style="color:#000000;">{{pushNotificationSetting(1).Value}}</p>
+      </div>
+    </form>
+
+  </ion-content>
+</ion-view>

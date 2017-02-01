@@ -1,0 +1,24 @@
+<ion-view title="Demo App" id="page1">
+  <ion-content padding="true" class="has-header">
+    <div class="spacer" style="width: 300px; height: 70px;"></div>
+    <div id="demoApp-markdown1" style="text-align:center;" class="show-list-numbers-and-dots">
+      <p style="color:#000000;">Sockets Demo</p>
+    </div>
+    <form ng-submit="doLogin()">
+      <div class="list">
+        <label class="item item-input">
+          <span class="input-label">Username</span>
+          <input type="text" ng-model="loginData.username">
+        </label>
+        <label class="item item-input">
+          <span class="input-label">Password</span>
+          <input type="password" ng-model="loginData.password">
+        </label>
+        <label class="item">
+          <button class="button button-block button-positive" type="submit">Log in</button>
+        </label>
+      </div>
+    </form>
+
+  </ion-content>
+</ion-view>
