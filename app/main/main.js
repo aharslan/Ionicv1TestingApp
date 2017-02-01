@@ -36,4 +36,13 @@ angular.module('main', [
       templateUrl: 'main/templates/backgroundmode.html',
       controller: 'BackgroundCtrl'
     });
+})
+
+.run(function () {
+  document.addEventListener('deviceready', function () {
+    /*eslint-disable*/
+    // Enable background mode
+    cordova.plugins.backgroundMode.enable();
+    /*eslint-enable*/
+  }, false);
 });
