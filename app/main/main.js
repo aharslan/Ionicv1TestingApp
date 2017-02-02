@@ -41,8 +41,30 @@ angular.module('main', [
 .run(function () {
   document.addEventListener('deviceready', function () {
     /*eslint-disable*/
+    // configure background mode
+    cordova.plugins.backgroundMode.setDefaults({
+        title: 'RapidFlow',
+        text: 'Running in background',
+        //icon: 'icon', // this will look for icon.png in platforms/android/res/drawable|mipmap
+        //color: String, // hex format like 'F14F4D'
+        //resume: Boolean,
+        //hidden: true,
+        //bigText: Boolean,
+        silent: true //disable the notifications for android.
+    })
+
     // Enable background mode
     cordova.plugins.backgroundMode.enable();
+
+    cordova.plugins.backgroundMode.on('activate', function () { //enable, disable, activate, deactivate
+      //run when app is going to background
+      //alert('activate');
+    });
+
+    cordova.plugins.backgroundMode.on('deactivate', function () { //enable, disable, activate, deactivate
+      //run when app comes back to foreground
+      //alert('deactivate');
+    });
     /*eslint-enable*/
   }, false);
 });

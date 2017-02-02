@@ -40,7 +40,7 @@ angular.module('main')
       check();
     };
     ws.onerror = function () {
-      alert('Socket Error No VPN');
+      console.log('Socket Error No VPN');
     };
 
   }
