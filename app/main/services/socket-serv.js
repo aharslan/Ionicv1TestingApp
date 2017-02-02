@@ -37,7 +37,7 @@ angular.module('main')
     ws.onclose = function () {
       console.log('closed!');
       //reconnect now
-      check();
+      //check();
     };
     ws.onerror = function () {
       console.log('Socket Error No VPN');
