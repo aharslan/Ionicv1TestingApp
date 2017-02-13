@@ -1,0 +1,251 @@
+USE [RapidFlowNG_DB1]
+GO
+/****** Object:  StoredProcedure [dbo].[Create_UserNotification]    Script Date: 2/9/2017 5:18:06 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- Batch submitted through debugger: SQLQuery94.sql|7|0|C:\Users\hussamx18\AppData\Local\Temp\5\~vs574D.sql
+-- =============================================
+-- Author:		<Majid Hussain>
+-- Create date: <27-12-2016>
+-- Description:	<Adds a task of  in UserNotificaitons>
+-- =============================================
+ALTER PROCEDURE [dbo].[Create_UserNotification] 
+	-- Add the parameters for the stored procedure here
+	@FromUserID int,
+	@InitiatorID int, 
+	@ProcessID int,
+	@ToUserID int,
+	@CCUserIDs nvarchar(max),
+	@TypeID int,
+	@Message nvarchar(max),
+	@DataPayload nvarchar(max)
+	
+AS
+BEGIN
+	
+	SET NOCOUNT ON;
+
+	Declare @UserNotificationCount as int
+	
+	--Acknowledgement Notification created on request submit 
+	IF(@TypeID = 2)
+	Begin 	
+	-- Insert statements for Acknowledgement Notification of Form Request
+	INSERT INTO [dbo].[UserNotifications]
+           ([ProcessID]
+           ,[InitiatorID]
+           ,[FromUserID]
+           ,[ToUserID]
+           ,[CCUserIDs]
+           ,[TypeID]
+           ,[Message]
+           ,[DataPayload]
+           ,[DateCreated]
+		   ,Deleted,
+		   UserAction)
+     VALUES
+           (@ProcessID,
+			@InitiatorID,
+			@FromUserID,
+			@FromUserID,
+			@CCUserIDs,
+			2,
+			'Request Submit Acknowledgment Notification' ,
+			case @DataPayload WHEN '' THEN Null ELSE  @DataPayload END,
+            GETDATE(),
+			0,
+		 'Pending'
+          )
+		  
+		 set @UserNotificationCount =  dbo.fnGetUserNotificationsCount (@FromUserID)
+
+		 SELECT @UserNotificationCount as 'UserNotificationCount', SCOPE_IDENTITY() as 'AckNotificationID', 0 as 'AccessNotificationID',0 as 'TaskNotificationID', 'Form request submitted' as 'Status';
+	End
+
+
+	--Task Assignment Notification created
+	IF(@TypeID = 1)
+	Begin 	
+	-- Insert statements for Task Assignment Notification
+	INSERT INTO [dbo].[UserNotifications]
+           ([ProcessID]
+           ,[InitiatorID]
+           ,[FromUserID]
+           ,[ToUserID]
+           ,[CCUserIDs]
+           ,[TypeID]
+           ,[Message]
+           ,[DataPayload]
+           ,[DateCreated]
+		   ,Deleted
+		   ,UserAction)
+     VALUES
+           (@ProcessID,
+			@InitiatorID,
+			@FromUserID,
+			@ToUserID,
+			@CCUserIDs,
+			1,
+			'Task Assignment Notification' ,
+			case @DataPayload WHEN '' THEN Null ELSE  @DataPayload END,
+            GETDATE(),
+			0,
+		 'Pending'
+          )
+
+		 -- set @tempNotificationID = (SELECT SCOPE_IDENTITY())
+		 set @UserNotificationCount =  dbo.fnGetUserNotificationsCount (@ToUserID)
+
+		 SELECT @UserNotificationCount as 'UserNotificationCount' ,0 as 'AckNotificationID', 0 as 'AccessNotificationID', SCOPE_IDENTITY() as 'TaskNotificationID', 'Task Assignment' as 'Status';
+	End
+
+
+
+
+
+
+	ElSE IF(@TypeID = 3)
+	BEGIN
+	If Exists (select ProcessID from MyProcesses where ProcessID = @ProcessID and UserID = @FromUserID)
+	Begin
+		SELECT 0 as 'AdminNotificationCount',0 as 'UserNotificationCount',0 as 'AckNotificationID', 0 as 'AccessNotificationID',0 as 'TaskNotificationID', 'User already have access' as 'Status'
+	END
+	ELSE
+	BEGIN
+
+	Declare 
+	@ProcAdminID as int,
+	@ProcessName as nvarchar(max),
+	@RequestedBy as nvarchar(255),
+	@AcknowledgeSubject as nvarchar(max),
+	@AcknowledgeBody as nvarchar(max),
+	@AccessAssignmentSubject as nvarchar(max),
+	@AccessAssignmentBody as nvarchar(max),
+	@ProcessAdminName as nvarchar(max),
+	@RoleName as nvarchar(max),
+	@tempNotificationID as int
+
+	set @ProcessName = (select ProcessReference from Processes where ProcessID =  @ProcessID)
+
+	IF @ProcessName = '' or @ProcessName is Null
+	BEGIN
+	
+	SELECT 0 as 'AdminNotificationCount',0 as 'UserNotificationCount', 0 as 'AckNotificationID', 0 as 'AccessNotificationID',0 as 'TaskNotificationID', 'Process Details are not updated' as 'Status'
+	END
+	ELSE
+	BEGIN
+	--Retrieve Process Admin for the given processID
+	set @ProcAdminID = (select U.UserID from Roles R
+	Inner Join RoleActions RA on R.RoleID = RA.RoleID
+	Inner Join ProcessUserRoles PUR on RA.RoleActionID = PUR.RoleActionID
+	Inner Join Users U on PUR.UserID = U.UserID
+	where PUR.ProcessID = @ProcessID
+	and PUR.Active = 1
+	and R.RoleName = 'ProcessAdministrator'
+	Group by U.UserID)
+
+	If @ProcAdminID = '' or @ProcAdminID is Null
+	begin 
+	set @ProcAdminID = 2
+	end
+
+	--Get ProcessAdmin Name
+	set @ProcessAdminName = (select DisplayName from users where userid = @ProcAdminID)
+	set @RequestedBy = (select DisplayName from Users where UserID = @FromUserID)
+	
+	set @AcknowledgeSubject = (select EmailSubject from NotificationTemplates where NotificationTypeID = (select [NotificationTypeID] from NotificationTypes where [NotificationType] = 'AccessRequestAcknowledgement'))
+	set @AcknowledgeBody = (select EmailBody from NotificationTemplates where NotificationTypeID = (select [NotificationTypeID] from NotificationTypes where [NotificationType] = 'AccessRequestAcknowledgement'))
+	set @AccessAssignmentSubject = (select EmailSubject from NotificationTemplates where NotificationTypeID = (select [NotificationTypeID] from NotificationTypes where [NotificationType] = 'AccessRequestAssignment'))
+	set @AccessAssignmentBody = (select EmailBody from NotificationTemplates where NotificationTypeID = (select [NotificationTypeID] from NotificationTypes where [NotificationType] = 'AccessRequestAssignment'))
+
+	--Replace tags according to current values
+	set @AcknowledgeSubject = Replace(@AcknowledgeSubject, '@ProcessName', @ProcessName);
+	set @AcknowledgeBody = Replace(@AcknowledgeBody, '@ProcessName', @ProcessName);
+	set @AcknowledgeBody = Replace(@AcknowledgeBody, '@ProcessAdmin', @ProcessAdminName);
+	set @AcknowledgeBody = Replace(@AcknowledgeBody, '@Reason', JSON_VALUE(@DataPayload,'$.Reason'));
+	set @AccessAssignmentSubject = Replace(@AccessAssignmentSubject, '@ProcessName', @ProcessName);
+	set @AccessAssignmentSubject = Replace(@AccessAssignmentSubject, '@FromUserName', @RequestedBy);
+	set @AccessAssignmentBody = Replace(@AccessAssignmentBody, '@ProcessName', @ProcessName);
+	set @AccessAssignmentBody = Replace(@AccessAssignmentBody, '@FromUserName', @RequestedBy);
+	set @AccessAssignmentBody = Replace(@AccessAssignmentBody, '@RoleName', JSON_VALUE(@DataPayload,'$.Role'));
+	set @AccessAssignmentBody = Replace(@AccessAssignmentBody, '@Reason', JSON_VALUE(@DataPayload,'$.Reason'));
+	
+	set @DataPayload = JSON_MODIFY(@DataPayload, '$.MessageBody', @AcknowledgeBody);
+	
+	-- Insert statements for Acknowledgement Notification of Access Request
+	INSERT INTO [dbo].[UserNotifications]
+           ([ProcessID]
+           ,[InitiatorID]
+           ,[FromUserID]
+           ,[ToUserID]
+           ,[CCUserIDs]
+           ,[TypeID]
+           ,[Message]
+           ,[DataPayload]
+           ,[DateCreated]
+		   ,Deleted,
+		   UserAction)
+     VALUES
+           (@ProcessID,
+			@InitiatorID,
+			@FromUserID,
+			@FromUserID,
+			@CCUserIDs,
+			2,
+			@AcknowledgeSubject ,
+			case @DataPayload WHEN '' THEN Null ELSE  @DataPayload END,
+            GETDATE(),
+			0,
+		 'Pending'
+          )
+
+	set @tempNotificationID = (SELECT SCOPE_IDENTITY())
+
+	Declare @tempUsernotificationCount int
+	set @tempUsernotificationCount =  dbo.fnGetUserNotificationsCount (@FromUserID)
+
+	--Give Permissions with Pending Access status
+	Insert into MyProcesses
+		  values(@ProcessID, @InitiatorID, Null, 'Pending Access',GetDate())
+
+	set @DataPayload = JSON_MODIFY(@DataPayload, '$.MessageBody', @AccessAssignmentBody);
+
+	-- Insert statements for Assignment Notification of Access Request
+	INSERT INTO [dbo].[UserNotifications]
+           ([ProcessID]
+           ,[InitiatorID]
+           ,[FromUserID]
+           ,[ToUserID]
+           ,[CCUserIDs]
+           ,[TypeID]
+           ,[Message]
+           ,[DataPayload]
+           ,[DateCreated]
+		   ,Deleted
+		   ,UserAction)
+     VALUES
+           (@ProcessID,
+			@InitiatorID,
+			@FromUserID,
+			@ProcAdminID,
+			@CCUserIDs,
+			3,
+			@AccessAssignmentSubject ,
+			case @DataPayload WHEN '' THEN Null ELSE  @DataPayload END,
+            GETDATE(),
+			0,
+			'Pending'
+          )
+
+		  set @UserNotificationCount =  dbo.fnGetUserNotificationsCount (@ProcAdminID)
+
+		  SELECT @UserNotificationCount as 'AdminNotificationCount', @tempUsernotificationCount as 'UserNotificationCount', @tempNotificationID as 'AckNotificationID', SCOPE_IDENTITY() as 'AccessNotificationID',0 as 'TaskNotificationID', 'Access request submitted' as 'Status';
+		--End of ProcessID null check
+		END
+		--End of Process Already Exists Check
+	  END
+	  --End of TypeID Check
+	END
+END

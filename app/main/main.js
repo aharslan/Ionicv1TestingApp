@@ -65,6 +65,23 @@ angular.module('main', [
       //run when app comes back to foreground
       //alert('deactivate');
     });
+
+    $window.addEventListener('LaunchUrl', function(event) {
+        // // gets page name from url
+        // var page =/.*:[/]{2}([^?]*)[?]?(.*)/.exec(event.detail.url)[1];
+        // // redirects to page specified in url
+        // $state.go('tab.'+ page, {});
+        alert('LaunchUrl Event Fired');
+    });
     /*eslint-enable*/
   }, false);
 });
+
+/*eslint-disable*/
+function handleOpenURL (url) {
+  setTimeout( function () {
+    var event = new CustomEvent('LaunchUrl', {detail: {'url': url}});
+    window.dispatchEvent(event);
+  }, 0);
+}
+/*eslint-enable*/
