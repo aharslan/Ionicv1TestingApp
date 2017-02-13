@@ -30,4 +30,7 @@
     <plugin name="cordova-plugin-statusbar" spec="~2.2.0" />
     <plugin name="cordova-sqlite-storage" spec="https://github.com/litehelpers/Cordova-sqlite-storage.git" />
     <plugin name="cordova-plugin-background-mode" spec="~0.7.1" />
+    <plugin name="cordova-plugin-customurlscheme" spec="https://github.com/EddyVerbruggen/LaunchMyApp-PhoneGap-Plugin.git">
+        <variable name="URL_SCHEME" value="testapp" />
+    </plugin>
 </widget>
