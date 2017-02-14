@@ -39,7 +39,7 @@ angular.module('main', [
 })
 
 .run(function () {
-  document.addEventListener('deviceready', function () {
+  document.addEventListener('deviceready', function ($window) {
     /*eslint-disable*/
     // configure background mode
     cordova.plugins.backgroundMode.setDefaults({
@@ -65,13 +65,13 @@ angular.module('main', [
       //run when app comes back to foreground
       //alert('deactivate');
     });
-
-    $window.addEventListener('LaunchUrl', function(event) {
+    $window;
+    document.addEventListener('LaunchUrl', function(event) {
         // // gets page name from url
         // var page =/.*:[/]{2}([^?]*)[?]?(.*)/.exec(event.detail.url)[1];
         // // redirects to page specified in url
         // $state.go('tab.'+ page, {});
-        alert('LaunchUrl Event Fired');
+        alert('LaunchUrl Event Fired!!!');
     });
     /*eslint-enable*/
   }, false);
@@ -81,7 +81,7 @@ angular.module('main', [
 function handleOpenURL (url) {
   setTimeout( function () {
     var event = new CustomEvent('LaunchUrl', {detail: {'url': url}});
-    window.dispatchEvent(event);
+    document.dispatchEvent(event);
   }, 0);
 }
 /*eslint-enable*/
